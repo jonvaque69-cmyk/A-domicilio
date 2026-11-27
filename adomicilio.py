@@ -86,5 +86,39 @@ with col3:
     st.metric("Ticket medio (€)", ticket_medio)
 
 with col4:
-    pedido_max = round(filtrados["total"].max(), 2) if num_pedidos > 0 else 0.0
-    st.metric("Pedido más alto (€)", pedido_max)
+    tiempo_medio = round(filtrados["minutos"].mean(), 1) if num_pedidos > 0 else 0.0
+    st.metric("Tiempo espera medio (min)", tiempo_medio)
+
+# Paso 7. Las pestañas
+tab1, tab2, tab3 = st.tabs(["Pedidos filtrados", "Canales y tiempos", "¿Qué pasaría si...?"])
+
+with tab1:
+    st.header("Pedidos filtrados")
+    if not filtrados.empty:
+        st.dataframe(filtrados, use_container_width=True)
+    else:
+        st.warning("No hay pedidos con estos filtros.")
+
+with tab2:
+    st.header("Rendimiento por plataforma")
+    if not filtrados.empty:
+        c1, c2 = st.columns(2)
+
+        with c1:
+            por_plat = filtrados.groupby("plataforma", as_index=False)["total"].sum()
+            fig_plat = px.bar(por_plat, x="plataforma", y="total", title="Facturación por plataforma")
+            st.plotly_chart(fig_plat, use_container_width=True)
+
+        with c2:
+            fig_hist = px.histogram(filtrados, x="total", nbins=15, title="Distribución de importes (€)")
+            st.plotly_chart(fig_hist, use_container_width=True)
+    else:
+        st.info("Ajusta los filtros de la barra lateral para ver los gráficos.")
+
+with tab3:
+    st.header("Simulador rápido de ticket")
+    umbral = st.slider("Ver pedidos con importe igual o mayor a (€):", 2.0, 90.0, 20.0, key="sim_umbral")
+    subset_sim = filtrados[filtrados["total"] >= umbral]
+    num_sim = len(subset_sim)
+    total_sim = 0.0 if num_sim == 0 else round(subset_sim["total"].sum(), 2)
+    st.write("Con el filtro actual,", num_sim, "pedidos superan o igualan los", umbral, "€, sumando", total_sim, "€.")
